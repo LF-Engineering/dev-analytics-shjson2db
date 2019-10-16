@@ -4,6 +4,8 @@ require 'pry'
 require 'json'
 require 'mysql2'
 
+dbg = !ENV["DBG"].nil?
+
 connect = Mysql2::Client.new(:host => "localhost", :username => "root", :password => "root", :database => "merged")
 result = connect.query("select name from organizations")
 eorgs = []
@@ -18,7 +20,7 @@ miss = 0
 all = 0
 orgs.each do |org|
   unless eorgs.include?(org)
-    puts "Missing #{org}" 
+    puts "Missing #{org}" if dbg
     miss += 1
   end
   all += 1
@@ -37,7 +39,7 @@ miss = 0
 all = 0
 bl.each do |b|
   unless ebl.include?(b)
-    puts "Missing #{b}"
+    puts "Missing #{b}" if dbg
     miss += 1
   end
   all += 1
@@ -55,11 +57,17 @@ miss = 0
 all = 0
 uids.each do |uid|
   unless euids.include?(uid)
-    puts "Missing #{uid}"
+    puts "Missing #{uid}" if dbg
     miss += 1
   end
   all += 1
 end
 puts "Missing uids: #{miss}/#{all}" if miss > 0
+
+profiles = []
+i['uidentities'].each do |uuid, data|
+  binding.pry if uuid != data['uuid'] || uuid != data['profile']['uuid']
+  profiles << data['profile']
+end
 
 binding.pry
