@@ -296,8 +296,8 @@ ks = []
 eenrollments = {}
 result.each do |row|
   uuid = row['uuid']
-  from = row['start']
-  to = row['end']
+  from = row['start'].strftime('%FT%T')
+  to = row['end'].strftime('%FT%T')
   key = [uuid, from, to]
   ks << key
   eenrollments[key] = row
@@ -319,7 +319,7 @@ enrollments.each do |e|
         update << "organization_id = (select id from organizations where name = '#{e['organization'].gsub("'", "\\\\'")}' limit 1)"
         diff = true
       end
-      puts "key: #{key}, organization diff: #{ee['organization']} != #{e['organization']}" if !ee['organization'].nil? && !e['organization'].nil? && ee['organization'].downcase != e['organization'].downcase
+      # puts "key: #{key}, organization diff: #{ee['organization']} != #{e['organization']}" if !ee['organization'].nil? && !e['organization'].nil? && ee['organization'].downcase != e['organization'].downcase
     end
   end
   if !includes || diff
@@ -328,18 +328,19 @@ enrollments.each do |e|
         puts "Updating #{key}" if dbg
         updates = update.join ', '
         begin
-          connect.query "aupdate enrollments set #{updates} where uuid = '#{key[0]}' and start = '#{key[1]}' and end = '#{key[2]}'"
+          connect.query "update enrollments set #{updates} where uuid = '#{key[0]}' and start = '#{key[1]}' and end = '#{key[2]}'"
         rescue
-          puts "aupdate enrollments set #{updates} where uuid = '#{key[0]}' and start = '#{key[1]}' and end = '#{key[2]}'"
+          puts "update enrollments set #{updates} where uuid = '#{key[0]}' and start = '#{key[1]}' and end = '#{key[2]}'"
           binding.pry
         end
       else
         puts "Missing #{key}" if dbg
         organization = e['organization'].nil? ? 'null' : "'#{e['organization'].gsub("'", "\\\\'")}'"
         begin
-          connect.query "ainsert into enrollments(uuid, start, end, organization_id) values('#{key[0]}', '#{key[1]}', '#{key[2]}', (select id from organizations where name = '#{organization}' limit 1))"
+          connect.query "insert into enrollments(uuid, start, end, organization_id) values('#{key[0]}', '#{key[1]}', '#{key[2]}', (select id from organizations where name = #{organization} limit 1))"
+          a = 1
         rescue
-          puts "ainsert into enrollments(uuid, start, end, organization_id) values('#{key[0]}', '#{key[1]}', '#{key[2]}', (select id from organizations where name = '#{organization}' limit 1))"
+          puts "insert into enrollments(uuid, start, end, organization_id) values('#{key[0]}', '#{key[1]}', '#{key[2]}', (select id from organizations where name = #{organization} limit 1))"
           binding.pry
         end
       end
