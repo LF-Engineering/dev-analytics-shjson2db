@@ -79,9 +79,13 @@ end
 puts "Missing uids: #{miss}/#{all}" if miss > 0
 
 profiles = []
+identities = []
 i['uidentities'].each do |uuid, data|
   binding.pry if uuid != data['uuid'] || uuid != data['profile']['uuid']
   profiles << data['profile']
+  data['identities'].each do |row|
+    identities << row
+  end
 end
 
 result = connect.query("select uuid, country_code, email, gender, gender_acc, is_bot, name from profiles")
@@ -93,6 +97,16 @@ result.each do |row|
   eprofiles[uuid] = row
 end
 euids = euids.sort.uniq
+
+result = connect.query("select id, name, email, username, source, uuid from identities")
+eids = []
+eidentities = {}
+result.each do |row|
+  id = row['id']
+  eids << id
+  eidentities[id] = row
+end
+eids = eids.sort.uniq
 
 miss = 0
 all = 0
@@ -185,6 +199,88 @@ profiles.each do |p|
   end
   all += 1
 end
-puts "Missing profiles: #{miss}/#{all}, updated profiles: #{upd}" if miss > 0 || upd > 0
+puts "Missing profiles: #{miss}/#{all}, profiles requiring updates: #{upd}" if miss > 0 || upd > 0
+
+miss = 0
+all = 0
+upd = 0
+identities.each do |i|
+  id = i['id']
+  diff = false
+  includes = eids.include?(id)
+  update = []
+  if includes
+    ei = eidentities[id]
+    if i['name'] != ei['name']
+      if ei['name'].nil? && !i['name'].nil?
+        update << "name = '#{i['name'].gsub("'", "\\\\'")}'"
+        diff = true
+      end
+      puts "id: #{id}, name diff: #{ei['name']} != #{i['name']}" if !ei['name'].nil? && !i['name'].nil? && ei['name'].downcase != i['name'].downcase
+    end
+    if i['email'] != ei['email']
+      if ei['email'].nil? && !i['email'].nil?
+        update << "email = '#{i['email']}'"
+        diff = true
+      end
+      # puts "id: #{id}, email diff: #{ei['email']} != #{i['email']}" if !ei['email'].nil? && !i['email'].nil? && ei['email'].downcase != i['email'].downcase
+    end
+    if i['username'] != ei['username']
+      if ei['username'].nil? && !i['username'].nil?
+        update << "username = '#{i['username'].gsub("'", "\\\\'")}'"
+        diff = true
+      end
+      puts "id: #{id}, username diff: #{ei['username']} != #{i['username']}" if !ei['username'].nil? && !i['username'].nil? && ei['username'].downcase != i['username'].downcase
+    end
+    if i['source'] != ei['source']
+      if ei['source'].nil? && !i['source'].nil?
+        update << "source = '#{i['source']}'"
+        diff = true
+      end
+      puts "id: #{id}, source diff: #{ei['source']} != #{i['source']}" if !ei['source'].nil? && !i['source'].nil?
+    end
+    if i['uuid'] != ei['uuid']
+      if ei['uuid'].nil? && !i['uuid'].nil?
+        update << "uuid = '#{i['uuid']}'"
+        diff = true
+      end
+      # puts "id: #{id}, uuid diff: #{ei['uuid']} != #{i['uuid']}" if !ei['uuid'].nil? && !i['uuid'].nil?
+    end
+  end
+  if !includes || diff
+    if fix
+      if diff
+        puts "Updating #{id}" if dbg
+        updates = update.join ', '
+        begin
+          connect.query "aupdate identities set #{updates}, last_modified = now() where id = '#{id}'"
+        rescue
+          puts "aupdate identities set #{updates}, last_modified = now() where id = '#{id}'"
+          binding.pry
+        end
+      else
+        puts "Missing #{id}" if dbg
+        name = i['name'].nil? ? 'null' : "'#{i['name'].gsub("'", "\\\\'")}'"
+        email = i['email'].nil? ? 'null' : "'#{i['email']}'"
+        username = i['username'].nil? ? 'null' : "'#{i['username'].gsub("'", "\\\\'")}'"
+        source = i['source'].nil? ? 'null' : "'#{i['source']}'"
+        uuid = i['uuid'].nil? ? 'null' : "'#{i['uuid']}'"
+        begin
+          connect.query "insert into identities(id, name, email, username, source, uuid, last_modified) values('#{id}', #{name}, #{email}, #{username}, #{source}, #{uuid}, now())"
+        rescue
+          puts "insert into identities(id, name, email, username, source, uuid, last_modified) values('#{id}', #{name}, #{email}, #{username}, #{source}, #{uuid}, now())"
+          binding.pry
+        end
+      end
+    end
+    if includes
+      upd += 1
+    else
+      miss += 1
+    end
+  end
+  all += 1
+end
+puts "Missing identities: #{miss}/#{all}, identities requiring update: #{upd}" if miss > 0 || upd > 0
 
 # binding.pry
