@@ -23,7 +23,7 @@ orgs.each do |org|
   unless eorgs.include?(org)
     puts "Missing #{org}" if dbg
     if fix
-      result = connect.query("insert into organizations(name) values('#{org}')")
+      connect.query("insert into organizations(name) values('#{org}')")
     end
     miss += 1
   end
@@ -45,7 +45,7 @@ bl.each do |b|
   unless ebl.include?(b)
     puts "Missing #{b}" if dbg
     if fix
-      result = connect.query("insert into matching_blacklist(excluded) values('#{b}')")
+      connect.query("insert into matching_blacklist(excluded) values('#{b}')")
     end
     miss += 1
   end
@@ -66,7 +66,7 @@ uids.each do |uid|
   unless euids.include?(uid)
     puts "Missing #{uid}" if dbg
     if fix
-      result = connect.query("insert into uidentities(uuid, last_modified) values('#{uid}', now())")
+      connect.query("insert into uidentities(uuid, last_modified) values('#{uid}', now())")
     end
     miss += 1
   end
@@ -79,5 +79,40 @@ i['uidentities'].each do |uuid, data|
   binding.pry if uuid != data['uuid'] || uuid != data['profile']['uuid']
   profiles << data['profile']
 end
+
+result = connect.query("select uuid, country_code, email, gender, gender_acc, is_bot, name from profiles")
+euids = []
+eprofiles = []
+result.each do |row|
+  euids << row['uuid']
+  eprofiles << row
+end
+euids = euids.sort.uniq
+
+miss = 0
+all = 0
+profiles.each do |p|
+  uid = p['uuid']
+  unless euids.include?(uid)
+    puts "Missing #{uid}" if dbg
+    if fix
+      country = p['country'].nil? ? 'null' : "'#{p['country'].gsub("'", "\\\\'")}'"
+      email = p['email'].nil? ? 'null' : "'#{p['email']}'"
+      gender = p['gender'].nil? ? 'null' : "'#{p['gender']}'"
+      gender_acc = p['gender_acc'].nil? ? 'null' : "#{p['gender_acc']}"
+      is_bot = p['is_bot'].nil? ? 'null' : "#{p['is_bot']}"
+      name = p['name'].nil? ? 'null' : "'#{p['name'].gsub("'", "\\\\'")}'"
+      begin
+        connect.query "insert into profiles(uuid, country_code, email, gender, gender_acc, is_bot, name) values('#{uid}', #{country}, #{email}, #{gender}, #{gender_acc}, #{is_bot}, #{name})"
+      rescue
+        puts "insert into profiles(uuid, country_code, email, gender, gender_acc, is_bot, name) values('#{uid}', #{country}, #{email}, #{gender}, #{gender_acc}, #{is_bot}, #{name})"
+        binding.pry
+      end
+    end
+    miss += 1
+  end
+  all += 1
+end
+puts "Missing profiles: #{miss}/#{all}" if miss > 0
 
 # binding.pry
