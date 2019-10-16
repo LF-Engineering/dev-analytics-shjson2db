@@ -52,4 +52,5 @@ build-iPhoneSimulator/
 /identities.json
 /orgs.json
 /merged.sql
+/merged_new.sql
 *.swp
