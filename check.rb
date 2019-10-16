@@ -99,23 +99,53 @@ profiles.each do |p|
   update = []
   if includes
     ep = eprofiles[uid]
+    p['is_bot'] = 1 if p['is_bot'] === true
+    p['is_bot'] = 0 if p['is_bot'] === false
     if p['country'] != ep['country_code']
       if ep['country_code'].nil? && !p['country'].nil?
         update << "country_code = '#{p['country'].gsub("'", "\\\\'")}'"
         diff = true
       end
       #puts "uid: #{uid}, country diff: #{ep['country_code']} != #{p['country']}" if dbg && ep['country_code'].nil? && !p['country'].nil?
+      puts "uid: #{uid}, country diff: #{ep['country_code']} != #{p['country']}" if !ep['country_code'].nil? && !p['country'].nil? && ep['country_code'].downcase != p['country'].downcase
     end
     if p['email'] != ep['email']
       if ep['email'].nil? && !p['email'].nil?
-        update << "email = '#{p['email'].gsub("'", "\\\\'")}'"
+        update << "email = '#{p['email']}'"
         diff = true
       end
+      # puts "uid: #{uid}, email diff: #{ep['email']} != #{p['email']}" if !ep['email'].nil? && !p['email'].nil? && ep['email'].downcase != p['email'].downcase
     end
-    if update.count > 0
-      p update
+    if p['gender'] != ep['gender']
+      if ep['gender'].nil? && !p['gender'].nil?
+        update << "gender = '#{p['gender']}'"
+        diff = true
+      end
+      puts "uid: #{uid}, gender diff: #{ep['gender']} != #{p['gender']}" if !ep['gender'].nil? && !p['gender'].nil? && ep['gender'].downcase != p['gender'].downcase
+    end
+    if p['gender_acc'] != ep['gender_acc']
+      if ep['gender_acc'].nil? && !p['gender_acc'].nil?
+        update << "gender_acc = #{p['gender_acc']}"
+        diff = true
+      end
+      puts "uid: #{uid}, gender_acc diff: #{ep['gender_acc']} != #{p['gender_acc']}" if !ep['gender_acc'].nil? && !p['gender_acc'].nil?
+    end
+    if p['is_bot'] != ep['is_bot']
+        if (ep['is_bot'].nil? && !p['is_bot'].nil?) || (ep['is_bot'] == 0 && p['is_bot'] == 1)
+        update << "is_bot = #{p['is_bot']}"
+        diff = true
+      end
+      puts "uid: #{uid}, is_bot diff: #{ep['is_bot']} != #{p['is_bot']}" if !ep['is_bot'].nil? && !p['is_bot'].nil?
+    end
+    if p['name'] != ep['name']
+      if ep['name'].nil? && !p['name'].nil?
+        update << "name = '#{p['name'].gsub("'", "\\\\'")}'"
+        diff = true
+      end
+      # puts "uid: #{uid}, name diff: #{ep['name']} != #{p['name']}" if !ep['name'].nil? && !p['name'].nil? && ep['name'].downcase != p['name'].downcase
     end
   end
+  diff = false
   if !includes || diff
     puts "Missing #{uid}" if dbg
     if fix
