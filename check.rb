@@ -260,9 +260,9 @@ identities.each do |i|
         puts "Updating #{id}" if dbg
         updates = update.join ', '
         begin
-          connect.query "aupdate identities set #{updates}, last_modified = now() where id = '#{id}'"
+          connect.query "update identities set #{updates}, last_modified = now() where id = '#{id}'"
         rescue
-          puts "aupdate identities set #{updates}, last_modified = now() where id = '#{id}'"
+          puts "update identities set #{updates}, last_modified = now() where id = '#{id}'"
           binding.pry
         end
       else
@@ -304,76 +304,42 @@ result.each do |row|
 end
 ks = ks.sort.uniq
 
-binding.pry
-
 miss = 0
 all = 0
 upd = 0
-identities.each do |i|
-  id = i['id']
+enrollments.each do |e|
+  key = [e['uuid'], e['start'], e['end']]
   diff = false
-  includes = eids.include?(id)
+  includes = ks.include?(key)
   update = []
   if includes
-    ei = eidentities[id]
-    if i['name'] != ei['name']
-      if ei['name'].nil? && !i['name'].nil?
-        update << "name = '#{i['name'].gsub("'", "\\\\'")}'"
+    ee = eenrollments[key]
+    if e['organization'] != ee['organization']
+      if ee['organization'].nil? && !e['organization'].nil?
+        update << "organization_id = (select id from organizations where name = '#{e['organization'].gsub("'", "\\\\'")}' limit 1)"
         diff = true
       end
-      # puts "id: #{id}, name diff: #{ei['name']} != #{i['name']}" if !ei['name'].nil? && !i['name'].nil? && ei['name'].downcase != i['name'].downcase
-    end
-    if i['email'] != ei['email']
-      if ei['email'].nil? && !i['email'].nil?
-        update << "email = '#{i['email']}'"
-        diff = true
-      end
-      # puts "id: #{id}, email diff: #{ei['email']} != #{i['email']}" if !ei['email'].nil? && !i['email'].nil? && ei['email'].downcase != i['email'].downcase
-    end
-    if i['username'] != ei['username']
-      if ei['username'].nil? && !i['username'].nil?
-        update << "username = '#{i['username'].gsub("'", "\\\\'")}'"
-        diff = true
-      end
-      puts "id: #{id}, username diff: #{ei['username']} != #{i['username']}" if !ei['username'].nil? && !i['username'].nil? && ei['username'].downcase != i['username'].downcase
-    end
-    if i['source'] != ei['source']
-      if ei['source'].nil? && !i['source'].nil?
-        update << "source = '#{i['source']}'"
-        diff = true
-      end
-      puts "id: #{id}, source diff: #{ei['source']} != #{i['source']}" if !ei['source'].nil? && !i['source'].nil?
-    end
-    if i['uuid'] != ei['uuid']
-      if ei['uuid'].nil? && !i['uuid'].nil?
-        update << "uuid = '#{i['uuid']}'"
-        diff = true
-      end
-      # puts "id: #{id}, uuid diff: #{ei['uuid']} != #{i['uuid']}" if !ei['uuid'].nil? && !i['uuid'].nil?
+      puts "key: #{key}, organization diff: #{ee['organization']} != #{e['organization']}" if !ee['organization'].nil? && !e['organization'].nil? && ee['organization'].downcase != e['organization'].downcase
     end
   end
   if !includes || diff
     if fix
       if diff
-        puts "Updating #{id}" if dbg
+        puts "Updating #{key}" if dbg
         updates = update.join ', '
         begin
-          connect.query "aupdate identities set #{updates}, last_modified = now() where id = '#{id}'"
+          connect.query "aupdate enrollments set #{updates} where uuid = '#{key[0]}' and start = '#{key[1]}' and end = '#{key[2]}'"
         rescue
-          puts "aupdate identities set #{updates}, last_modified = now() where id = '#{id}'"
+          puts "aupdate enrollments set #{updates} where uuid = '#{key[0]}' and start = '#{key[1]}' and end = '#{key[2]}'"
           binding.pry
         end
       else
-        puts "Missing #{id}" if dbg
-        name = i['name'].nil? ? 'null' : "'#{i['name'].gsub("'", "\\\\'")}'"
-        email = i['email'].nil? ? 'null' : "'#{i['email']}'"
-        username = i['username'].nil? ? 'null' : "'#{i['username'].gsub("'", "\\\\'")}'"
-        source = i['source'].nil? ? 'null' : "'#{i['source']}'"
-        uuid = i['uuid'].nil? ? 'null' : "'#{i['uuid']}'"
+        puts "Missing #{key}" if dbg
+        organization = e['organization'].nil? ? 'null' : "'#{e['organization'].gsub("'", "\\\\'")}'"
         begin
-          connect.query "insert into identities(id, name, email, username, source, uuid, last_modified) values('#{id}', #{name}, #{email}, #{username}, #{source}, #{uuid}, now())"
+          connect.query "ainsert into enrollments(uuid, start, end, organization_id) values('#{key[0]}', '#{key[1]}', '#{key[2]}', (select id from organizations where name = '#{organization}' limit 1))"
         rescue
-          puts "insert into identities(id, name, email, username, source, uuid, last_modified) values('#{id}', #{name}, #{email}, #{username}, #{source}, #{uuid}, now())"
+          puts "ainsert into enrollments(uuid, start, end, organization_id) values('#{key[0]}', '#{key[1]}', '#{key[2]}', (select id from organizations where name = '#{organization}' limit 1))"
           binding.pry
         end
       end
@@ -386,6 +352,6 @@ identities.each do |i|
   end
   all += 1
 end
-puts "Missing identities: #{miss}/#{all}, identities requiring update: #{upd}" if miss > 0 || upd > 0
+puts "Missing enrollments: #{miss}/#{all}, enrollments requiring update: #{upd}" if miss > 0 || upd > 0
 
 # binding.pry
