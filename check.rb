@@ -80,11 +80,15 @@ puts "Missing uids: #{miss}/#{all}" if miss > 0
 
 profiles = []
 identities = []
+enrollments = []
 i['uidentities'].each do |uuid, data|
   binding.pry if uuid != data['uuid'] || uuid != data['profile']['uuid']
   profiles << data['profile']
   data['identities'].each do |row|
     identities << row
+  end
+  data['enrollments'].each do |row|
+    enrollments << row
   end
 end
 
@@ -161,7 +165,7 @@ profiles.each do |p|
         update << "name = '#{p['name'].gsub("'", "\\\\'")}'"
         diff = true
       end
-      # puts "uid: #{uid}, name diff: #{ep['name']} != #{p['name']}" if !ep['name'].nil? && !p['name'].nil? && ep['name'].downcase != p['name'].downcase
+      puts "uid: #{uid}, name diff: #{ep['name']} != #{p['name']}" if !ep['name'].nil? && !p['name'].nil? && ep['name'].downcase != p['name'].downcase
     end
   end
   if !includes || diff
@@ -216,7 +220,7 @@ identities.each do |i|
         update << "name = '#{i['name'].gsub("'", "\\\\'")}'"
         diff = true
       end
-      puts "id: #{id}, name diff: #{ei['name']} != #{i['name']}" if !ei['name'].nil? && !i['name'].nil? && ei['name'].downcase != i['name'].downcase
+      # puts "id: #{id}, name diff: #{ei['name']} != #{i['name']}" if !ei['name'].nil? && !i['name'].nil? && ei['name'].downcase != i['name'].downcase
     end
     if i['email'] != ei['email']
       if ei['email'].nil? && !i['email'].nil?
