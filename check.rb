@@ -15,13 +15,15 @@ orgs = o['organizations'].keys
 orgs = orgs.sort.uniq
 
 miss = 0
+all = 0
 orgs.each do |org|
   unless eorgs.include?(org)
     puts "Missing #{org}" 
     miss += 1
   end
+  all += 1
 end
-puts "Missing orgs: #{miss}"
+puts "Missing orgs: #{miss}/#{all}" if miss > 0
 
 i = JSON.parse File.read 'identities.json'
 bl = i['blacklist'].sort.uniq
@@ -32,12 +34,32 @@ result.each { |row| ebl << row['excluded'] }
 ebl = ebl.sort.uniq
 
 miss = 0
+all = 0
 bl.each do |b|
   unless ebl.include?(b)
     puts "Missing #{b}"
     miss += 1
   end
+  all += 1
 end
-puts "Missing black list entries: #{miss}"
+puts "Missing black list entries: #{miss}/#{all}" if miss > 0
 
-#binding.pry
+uids = i['uidentities'].keys
+
+result = connect.query("select uuid from uidentities")
+euids = []
+result.each { |row| euids << row['uuid'] }
+euids = euids.sort.uniq
+
+miss = 0
+all = 0
+uids.each do |uid|
+  unless euids.include?(uid)
+    puts "Missing #{uid}"
+    miss += 1
+  end
+  all += 1
+end
+puts "Missing uids: #{miss}/#{all}" if miss > 0
+
+binding.pry
