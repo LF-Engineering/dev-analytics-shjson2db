@@ -11,7 +11,6 @@ result.each { |row| eorgs << row['name'] }
 eorgs = eorgs.sort.uniq
 
 o = JSON.parse File.read 'orgs.json'
-bl = o['blacklist']
 orgs = o['organizations'].keys
 orgs = orgs.sort.uniq
 
@@ -23,3 +22,22 @@ orgs.each do |org|
   end
 end
 puts "Missing orgs: #{miss}"
+
+i = JSON.parse File.read 'identities.json'
+bl = i['blacklist'].sort.uniq
+
+result = connect.query("select excluded from matching_blacklist")
+ebl = []
+result.each { |row| ebl << row['excluded'] }
+ebl = ebl.sort.uniq
+
+miss = 0
+bl.each do |b|
+  unless ebl.include?(b)
+    puts "Missing #{b}"
+    miss += 1
+  end
+end
+puts "Missing black list entries: #{miss}"
+
+#binding.pry
