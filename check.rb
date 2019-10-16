@@ -82,10 +82,11 @@ end
 
 result = connect.query("select uuid, country_code, email, gender, gender_acc, is_bot, name from profiles")
 euids = []
-eprofiles = []
+eprofiles = {}
 result.each do |row|
-  euids << row['uuid']
-  eprofiles << row
+  uuid = row['uuid']
+  euids << uuid
+  eprofiles[uuid] = row
 end
 euids = euids.sort.uniq
 
@@ -93,7 +94,19 @@ miss = 0
 all = 0
 profiles.each do |p|
   uid = p['uuid']
-  unless euids.include?(uid)
+  diff = false
+  includes = euids.include?(uid)
+  update = []
+  if includes
+    ep = eprofiles[uid]
+    if p['country'] != ep['country_code']
+      if ep['country_code'].nil? && !p['country'].nil?
+        update << "country_code = '#{p['country']}'"
+      end
+      puts "uid: #{uid}, country diff: #{ep['country_code']} != #{p['country']}" if dbg
+    end
+  end
+  if !includes || diff
     puts "Missing #{uid}" if dbg
     if fix
       country = p['country'].nil? ? 'null' : "'#{p['country'].gsub("'", "\\\\'")}'"
