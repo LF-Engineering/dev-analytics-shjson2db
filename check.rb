@@ -96,6 +96,7 @@ euids = euids.sort.uniq
 
 miss = 0
 all = 0
+upd = 0
 profiles.each do |p|
   uid = p['uuid']
   diff = false
@@ -149,27 +150,41 @@ profiles.each do |p|
       # puts "uid: #{uid}, name diff: #{ep['name']} != #{p['name']}" if !ep['name'].nil? && !p['name'].nil? && ep['name'].downcase != p['name'].downcase
     end
   end
-  diff = false
   if !includes || diff
-    puts "Missing #{uid}" if dbg
     if fix
-      country = p['country'].nil? ? 'null' : "'#{p['country'].gsub("'", "\\\\'")}'"
-      email = p['email'].nil? ? 'null' : "'#{p['email']}'"
-      gender = p['gender'].nil? ? 'null' : "'#{p['gender']}'"
-      gender_acc = p['gender_acc'].nil? ? 'null' : "#{p['gender_acc']}"
-      is_bot = p['is_bot'].nil? ? 'null' : "#{p['is_bot']}"
-      name = p['name'].nil? ? 'null' : "'#{p['name'].gsub("'", "\\\\'")}'"
-      begin
-        connect.query "insert into profiles(uuid, country_code, email, gender, gender_acc, is_bot, name) values('#{uid}', #{country}, #{email}, #{gender}, #{gender_acc}, #{is_bot}, #{name})"
-      rescue
-        puts "insert into profiles(uuid, country_code, email, gender, gender_acc, is_bot, name) values('#{uid}', #{country}, #{email}, #{gender}, #{gender_acc}, #{is_bot}, #{name})"
-        binding.pry
+      if diff
+        puts "Updating #{uid}" if dbg
+        updates = update.join ', '
+        begin
+          connect.query "update profiles set #{updates} where uuid = '#{uid}'"
+        rescue
+          puts "update profiles set #{updates} where uuid = '#{uid}'"
+          binding.pry
+        end
+      else
+        puts "Missing #{uid}" if dbg
+        country = p['country'].nil? ? 'null' : "'#{p['country'].gsub("'", "\\\\'")}'"
+        email = p['email'].nil? ? 'null' : "'#{p['email']}'"
+        gender = p['gender'].nil? ? 'null' : "'#{p['gender']}'"
+        gender_acc = p['gender_acc'].nil? ? 'null' : "#{p['gender_acc']}"
+        is_bot = p['is_bot'].nil? ? 'null' : "#{p['is_bot']}"
+        name = p['name'].nil? ? 'null' : "'#{p['name'].gsub("'", "\\\\'")}'"
+        begin
+          connect.query "insert into profiles(uuid, country_code, email, gender, gender_acc, is_bot, name) values('#{uid}', #{country}, #{email}, #{gender}, #{gender_acc}, #{is_bot}, #{name})"
+        rescue
+          puts "insert into profiles(uuid, country_code, email, gender, gender_acc, is_bot, name) values('#{uid}', #{country}, #{email}, #{gender}, #{gender_acc}, #{is_bot}, #{name})"
+          binding.pry
+        end
       end
     end
-    miss += 1
+    if includes
+      upd += 1
+    else
+      miss += 1
+    end
   end
   all += 1
 end
-puts "Missing profiles: #{miss}/#{all}" if miss > 0
+puts "Missing profiles: #{miss}/#{all}, updated profiles: #{upd}" if miss > 0 || upd > 0
 
 # binding.pry
