@@ -51,3 +51,4 @@ build-iPhoneSimulator/
 
 /identities.json
 /orgs.json
+*.swp
