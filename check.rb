@@ -101,9 +101,19 @@ profiles.each do |p|
     ep = eprofiles[uid]
     if p['country'] != ep['country_code']
       if ep['country_code'].nil? && !p['country'].nil?
-        update << "country_code = '#{p['country']}'"
+        update << "country_code = '#{p['country'].gsub("'", "\\\\'")}'"
+        diff = true
       end
-      puts "uid: #{uid}, country diff: #{ep['country_code']} != #{p['country']}" if dbg
+      #puts "uid: #{uid}, country diff: #{ep['country_code']} != #{p['country']}" if dbg && ep['country_code'].nil? && !p['country'].nil?
+    end
+    if p['email'] != ep['email']
+      if ep['email'].nil? && !p['email'].nil?
+        update << "email = '#{p['email'].gsub("'", "\\\\'")}'"
+        diff = true
+      end
+    end
+    if update.count > 0
+      p update
     end
   end
   if !includes || diff
