@@ -5,6 +5,7 @@ require 'json'
 require 'mysql2'
 
 dbg = !ENV["DBG"].nil?
+fix = !ENV["FIX"].nil?
 
 connect = Mysql2::Client.new(:host => "localhost", :username => "root", :password => "root", :database => "merged")
 result = connect.query("select name from organizations")
@@ -21,6 +22,9 @@ all = 0
 orgs.each do |org|
   unless eorgs.include?(org)
     puts "Missing #{org}" if dbg
+    if fix
+      result = connect.query("insert into organizations(name) values('#{org}')")
+    end
     miss += 1
   end
   all += 1
@@ -40,6 +44,9 @@ all = 0
 bl.each do |b|
   unless ebl.include?(b)
     puts "Missing #{b}" if dbg
+    if fix
+      result = connect.query("insert into matching_blacklist(excluded) values('#{b}')")
+    end
     miss += 1
   end
   all += 1
@@ -58,6 +65,9 @@ all = 0
 uids.each do |uid|
   unless euids.include?(uid)
     puts "Missing #{uid}" if dbg
+    if fix
+      result = connect.query("insert into uidentities(uuid, last_modified) values('#{uid}', now())")
+    end
     miss += 1
   end
   all += 1
@@ -70,4 +80,4 @@ i['uidentities'].each do |uuid, data|
   profiles << data['profile']
 end
 
-binding.pry
+# binding.pry
