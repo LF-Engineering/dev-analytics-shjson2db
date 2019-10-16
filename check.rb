@@ -4,10 +4,14 @@ require 'pry'
 require 'json'
 require 'mysql2'
 
-dbg = !ENV["DBG"].nil?
-fix = !ENV["FIX"].nil?
+dbg = !ENV['DBG'].nil?
+fix = !ENV['FIX'].nil?
+host = ENV['HOST'] || 'localhost'
+user = ENV['USER'] || 'root'
+pass = ENV['PASS'] || 'root'
+db = ENV['DB'] || 'merged'
 
-connect = Mysql2::Client.new(:host => "localhost", :username => "root", :password => "root", :database => "merged")
+connect = Mysql2::Client.new(:host => host, :username => user, :password => pass, :database => db)
 result = connect.query("select name from organizations")
 eorgs = []
 result.each { |row| eorgs << row['name'] }
